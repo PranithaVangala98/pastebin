@@ -8,6 +8,14 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   const { id } = await params;
+  let now = new Date().getTime();
+
+  if (process.env.TEST_MODE === "1") {
+    const xTestNowValue = Number(request.headers.get("x-test-now-ms") || 0);
+    if (xTestNowValue) {
+      now = xTestNowValue;
+    }
+  }
 
   // 1️⃣ Fetch paste
   const rows = await sql`
@@ -21,10 +29,9 @@ export async function GET(
   }
 
   const paste = rows[0];
-  const now = new Date();
 
   // 2️⃣ Check expiration
-  if (paste.expires_at && now > paste.expires_at) {
+  if (paste.expires_at && now > new Date(paste.expires_at).getTime()) {
     return NextResponse.json({ error: "Paste expired" }, { status: 404 });
   }
 

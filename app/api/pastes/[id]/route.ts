@@ -1,13 +1,11 @@
-// export const dynamic = "force-dynamic";
-
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const { id } = await context.params;
   let now = new Date().getTime();
 
   if (process.env.TEST_MODE === "1") {

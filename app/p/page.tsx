@@ -96,7 +96,7 @@ export default function HomePage() {
 
       {resultUrl && (
         <div style={styles.result}>
-          <p>Paste created 🎉</p>
+          <p>Paste created </p>
           <a href={resultUrl} target="_blank">
             {resultUrl}
           </a>

@@ -1,7 +1,12 @@
-import { sql } from "@/lib/db";
-import { notFound } from "next/navigation";
-
 export const dynamic = "force-dynamic";
+
+async function getPaste(id: string) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/pastes/${id}`,
+  );
+  const data = await res.json();
+  return { status: res.status, data };
+}
 
 export default async function PastePage({
   params,
@@ -9,38 +14,35 @@ export default async function PastePage({
   params: { id: string };
 }) {
   const { id } = await params;
-
   if (!id) {
-    notFound();
-  }
-
-  const rows = await sql`
-    UPDATE pastes
-    SET views = views + 1
-    WHERE id = ${id}
-      AND (expires_at IS NULL OR expires_at > NOW())
-      AND (max_views IS NULL OR views < max_views)
-    RETURNING content, expires_at, max_views, views
-  `;
-
-  if (rows.length === 0) {
     return (
-      <ErrorState
-        title="Paste unavailable"
-        message="This paste has expired or its view limit has been reached."
-      />
+      <ErrorState title="Paste unavailable" message="No paste ID provided." />
     );
   }
 
-  const paste = rows[0];
+  const { status, data } = await getPaste(id);
+  console.log("status", status);
+  console.log("data", data);
+
+  if (status !== 200) {
+    let message = "This paste is unavailable.";
+    if (data?.error === "Paste expired") message = "This paste has expired.";
+    else if (data?.error === "View limit exceeded")
+      message = "This paste's view limit has been reached.";
+    else if (data?.error === "Paste not found")
+      message = "This paste does not exist.";
+    return <ErrorState title="Paste unavailable" message={message} />;
+  }
+
+  const paste = data;
 
   return (
     <main style={styles.container}>
       <header style={styles.header}>
         <h2>Shared Paste</h2>
         <small>
-          {paste.max_views !== null && (
-            <>Remaining views: {paste.max_views - paste.views}</>
+          {paste.remaining_views !== null && (
+            <>Remaining views: {paste.remaining_views}</>
           )}
         </small>
       </header>
@@ -49,8 +51,6 @@ export default async function PastePage({
     </main>
   );
 }
-
-/* ---------------- Error UI ---------------- */
 
 function ErrorState({ title, message }: { title: string; message: string }) {
   return (
@@ -63,8 +63,6 @@ function ErrorState({ title, message }: { title: string; message: string }) {
     </main>
   );
 }
-
-/* ---------------- Styles ---------------- */
 
 const styles: Record<string, React.CSSProperties> = {
   container: {

@@ -36,13 +36,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // ---- Create Paste ----
     const id = crypto.randomBytes(4).toString("hex");
     const expiresAt = ttl_seconds
       ? new Date(Date.now() + ttl_seconds * 1000)
       : null;
 
-    // ---- Insert into Neon ----
     await sql`
       INSERT INTO pastes (id, content, expires_at, max_views)
       VALUES (${id}, ${content}, ${expiresAt}, ${max_views ?? null})

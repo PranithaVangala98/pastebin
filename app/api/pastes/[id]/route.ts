@@ -15,7 +15,6 @@ export async function GET(
     }
   }
 
-  // 1️⃣ Fetch paste
   const rows = await sql`
     SELECT id, content, expires_at, max_views, views
     FROM pastes
@@ -28,28 +27,23 @@ export async function GET(
 
   const paste = rows[0];
 
-  // 2️⃣ Check expiration
   if (paste.expires_at && now > new Date(paste.expires_at).getTime()) {
     return NextResponse.json({ error: "Paste expired" }, { status: 404 });
   }
 
-  // 3️⃣ Check view limit
   if (paste.max_views !== null && paste.views >= paste.max_views) {
     return NextResponse.json({ error: "View limit exceeded" }, { status: 404 });
   }
 
-  // 4️⃣ Increment views (successful fetch)
   await sql`
     UPDATE pastes
     SET views = views + 1
     WHERE id = ${id}
   `;
 
-  // 5️⃣ Calculate remaining views
   const remainingViews =
     paste.max_views === null ? null : paste.max_views - (paste.views + 1);
 
-  // 6️⃣ Response
   return NextResponse.json(
     {
       content: paste.content,
